@@ -333,7 +333,103 @@ class CheckIN(Toplevel):
         reset_Button = my_canvas.create_image(1020, 695, image=reset1, anchor = 'nw')
         my_canvas.tag_bind(reset_Button, "<Button-1>", reset)
 
+# CHECKOUT UI ========================================================================================================================================================================================================
 
+class CheckOut(Toplevel):
+    def __init__(self, root):
+        super().__init__(root)
+        pad = 3
+        self.title("Check out of OceanView")
+        self.geometry("1600x950")
+        self.iconbitmap("palm.ico")
+
+        # Creating Canvas
+        my_canvas = Canvas(self, width = 1600, height = 950)
+        my_canvas.pack(fill = 'both', expand = True)
+
+        #Adding Background Image
+        bg = ImageTk.PhotoImage(file="bg_2.jpg")
+        self.back = Label(self)
+        self.back.image = bg; # Adding a reference to the image so that it isn't deleted from memory during class instantiation.
+        my_canvas.create_image(0,0, image = bg, anchor = 'nw')
+
+        # Adding Title
+        my_canvas.create_text(420, 5, text = "Check Out Of OceanView", font = ("High Tower Text", 50), fill = "#006b56", anchor = "nw")
+        
+        #room number
+        my_canvas.create_text(350, 110, text = "Enter Room Number:", font = ("High Tower Text", 40), fill = "#006b56", anchor = "nw")                       
+        
+        # text entry field for room number
+        self.room_var = StringVar()
+        self.room_no_entry = Entry(self, width=10, text='')
+        self.room_no_entry.place(x=900, y=140)
+
+        # info window
+        self.get_info_entry = Text(self, height=12, width=90)
+        self.get_info_entry.place(x=400,y=230)
+        self.get_info_entry.configure(state='disabled')
+
+        def close_win(holder):
+            self.destroy()
+
+        def check_out_msq(holder):
+            room_number1 = self.room_no_entry.get()
+            if not room_number1.isdigit():
+                messagebox.showerror("ERROR", "The number you entered is invalid!", parent = self) # parent attribute keeps the error box displayed on top of current window
+                self.room_no_entry.delete(0, END)
+                self.room_no_entry.insert(0, "")
+            else:
+                room_number1 = int(room_number1)
+                con = sql.connect(host = 'localhost',user = 'root', password = 'tiger', database = 'hotel')
+                cur = con.cursor()
+                cur.execute("SELECT * FROM Hotel;")
+                r_list = cur.fetchall()
+                if len(r_list) == 0:
+                    self.get_info_entry.configure(state='normal')
+                    self.get_info_entry.delete('1.0', END)
+                    self.get_info_entry.insert(INSERT, 'No Rooms In Use!')
+                    self.get_info_entry.configure(state='disabled')
+                else:
+                    for i in r_list:
+                        if room_number1 == i[3]:
+                            in_date=i[6]
+                            out_date= date.today()
+                            #d0=date(int(in_date[0:4]),int(in_date[5:7]),int(in_date[8:]))
+                            
+                            cur.execute("DELETE FROM Hotel WHERE room_number = {}".format(i[3]))
+                            if i[4] == 'Deluxe Suite':
+                                cur.execute("INSERT INTO rooms_del VALUES ({})".format(i[3]))
+                            if i[4] == 'Non-Deluxe Suite':
+                                cur.execute("INSERT INTO rooms_nondel VALUES ({})".format(i[3]))
+                            now = datetime.now()
+                            current_time = now.strftime("%H:%M:%S")
+                            self.get_info_entry.configure(state='normal')
+                            self.get_info_entry.delete('1.0', END)
+                            self.get_info_entry.insert(INSERT, '\n' + str(i[0]) + ' has successfully checked out from room number: ' + str(i[3]) + '\nPrice: ' + str(i[5]) + '\nCheck Out Time: ' + current_time + "\nCheck Out Date:" +  str(out_date))
+                            self.get_info_entry.configure(state='disabled')
+                            break
+                    else:
+                        self.get_info_entry.configure(state='normal')
+                        self.get_info_entry.delete('1.0', END)
+                        self.get_info_entry.insert(INSERT, 'Please Enter Valid Room Number!')
+                        self.get_info_entry.configure(state='disabled')
+                con.commit()
+                #print("ERROR_cout")
+                #con.rollback()
+                con.close()
+        # Create check out button
+        cout2 = ImageTk.PhotoImage(file="cout2.png")
+        self.cout2_l = Label(self, image=cout2)
+        self.cout2_l.image = cout2;
+        cout2_Button = my_canvas.create_image(250, 475, image=cout2, anchor = 'nw')
+        my_canvas.tag_bind(cout2_Button, "<Button-1>", check_out_msq)
+
+        # create home button
+        home = ImageTk.PhotoImage(file="home.png")
+        self.home_l = Label(self, image=home)
+        self.home_l.image = home;
+        home_Button = my_canvas.create_image(950, 475, image=home, anchor = 'nw')
+        my_canvas.tag_bind(home_Button, "<Button-1>", close_win)
 
 
 # GET INFO UI ========================================================================================================================================================================================================
