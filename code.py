@@ -121,6 +121,218 @@ class Hotel(Tk):
     def close_win(self,h2):
         self.destroy()
 
+# CHECK IN UI ========================================================================================================================================================================================================
+
+class CheckIN(Toplevel):
+    def __init__(self, root):
+        super().__init__(root)
+        pad = 3
+        self.price = 0
+        self.temprice=0
+        self.title("Check into OceanView!")
+        self.geometry("1600x950")
+        self.iconbitmap("palm.ico")
+
+        #Creating Canvas
+        my_canvas = Canvas(self, width = 1600, height = 950)
+        my_canvas.pack(fill = 'both', expand = True)
+
+        #Adding Background Image
+        bg = ImageTk.PhotoImage(file="bg_2.jpg")
+        self.back = Label(self)
+        self.back.image = bg; # Adding a reference to the image so that it isn't deleted from memory during class instantiation.
+        my_canvas.create_image(0,0, image = bg, anchor = 'nw')
+
+        # Adding Title
+        my_canvas.create_text(450, 5, text = "Check In To OceanView", font = ("High Tower Text", 50), fill = "#006b56", anchor = "nw")
+
+        #name
+        my_canvas.create_text(500, 130, text = "Name:", font = ("High Tower Text", 40), fill = "#006b56", anchor = "nw")
+        self.name_var = StringVar()
+        self.name_entry = Entry(self, width=50 , font = ("Times New Roman", 15), textvar=self.name_var)
+        self.name_entry.place(x=700,y=155)
+
+        #mobile number
+        my_canvas.create_text(280, 220, text = "Mobile Number:", font = ("High Tower Text", 40), fill = "#006b56", anchor = "nw")
+        self.mobile_var = IntVar()
+        self.mobile_entry = Entry(self, width=50, font = ("Times New Roman", 15), text='')
+        self.mobile_entry.place(x=700,y=245)
+                         
+        #number of days stay
+        my_canvas.create_text(345, 310, text = "No. Of Days:", font = ("High Tower Text", 40), fill = "#006b56", anchor = "nw")
+        self.days_var = IntVar()
+        self.days_entry = Entry(self, width=50 , font = ("Times New Roman", 15), text='')
+        self.days_entry.place(x=700, y=335)
+        
+        # room number label
+        my_canvas.create_text(307, 470, text = "Room Number:", font = ("High Tower Text", 40), fill = "#006b56", anchor = "nw")
+
+        # select suite
+        my_canvas.create_text(390, 400, text = "Suite Type:", font = ("High Tower Text", 40), fill = "#006b56", anchor = "nw")
+        self.SuiteSelect = ttk.Combobox(self, font = ("Times New Roman", 15), values=["","Deluxe Suite","Standard Suite"])
+        self.SuiteSelect.place(x=700 ,y=425)
+
+        # extra bed option 
+        my_canvas.create_text(405, 540, text = "Extra Bed:", font = ("High Tower Text", 40), fill = "#006b56", anchor = "nw")
+        self.bedsel = ttk.Combobox(self, font = ("Times New Roman", 15), values=["YES","NO"])
+        self.bedsel.place(x=700 ,y=565)
+        
+        def room_number_del():
+            con = sql.connect(host = 'localhost',user = 'root', password = 'tiger', database = 'hotel')
+            try:
+                cur = con.cursor()
+                cur.execute("SELECT * FROM rooms_del ORDER BY r_no asc;")
+                r = list(cur.fetchall())
+                i = r[0][0]
+                con.commit()
+            except:
+                print("ERROR room_number")
+                con.rollback()
+            con.close()
+            self.room_entry.insert(0, i)
+
+        
+        def room_number_nondel():
+            con = sql.connect(host = 'localhost',user = 'root', password = 'tiger', database = 'hotel')
+            try:
+                cur = con.cursor()
+                cur.execute("SELECT * FROM rooms_nondel;")
+                r = list(cur.fetchall())
+                i = r[0][0]
+                con.commit()
+            except:
+                print("ERROR room_number")
+                con.rollback()
+            con.close()
+            self.room_entry.insert(0, i)
+
+        #For resetting the form
+        def reset(holder):
+            self.SuiteSelect.current(0)
+
+            self.room_entry.delete(0, END)
+            self.room_entry.insert(0, "")
+
+            self.name_entry.delete(0, END) # first parameter is 0 for text_entry box
+            self.name_entry.insert(0, "")
+
+            self.mobile_entry.delete(0, END)
+            self.mobile_entry.insert(0, "")
+
+            self.days_entry.delete(0, END)
+            self.days_entry.insert(0, "")
+
+            self.price_entry.delete(0, END)
+            self.price_entry.insert(0, "")
+    
+        #For Closing winodw
+        def close_win(holder):
+            self.destroy()
+
+        #Submitting customer info
+        def submit_info(holder):
+            name = self.name_entry.get()
+            room = self.room_entry.get()
+            suite = self.SuiteSelect.get()
+            valid_inp = False
+            mobile, days = None, None
+
+            self.h = str(self.mobile_entry.get())
+            if self.h.isdigit() and len(self.h) == 10:
+                mobile = self.h
+                valid_inp = True
+            else:
+                valid_inp = False
+                messagebox.showerror("ERROR", "The number you entered is invalid!", parent = self) # parent attribute keeps the error box displayed on top of current window
+                self.mobile_entry.delete(0, END)
+                self.mobile_entry.insert(0, "")
+
+            self.h = str(self.days_entry.get())
+            if self.h.isdigit():
+                days = self.h
+                valid_inp = True
+            else:
+                valid_inp = False
+                messagebox.showerror("ERROR", "Enter valid value for no. of days!", parent = self) # parent attribute keeps the error box displayed on top of current window
+                self.days_entry.delete(0, END)
+                self.days_entry.insert(0, "")
+
+            if valid_inp:
+                con = sql.connect(host = 'localhost',user = 'root', password = 'tiger', database = 'hotel')
+                try:
+                    cur = con.cursor()
+                    cur.execute("INSERT INTO Hotel VALUES ('{}',{},{},{},'{}',{},DEFAULT);".format(name, mobile, days, room, suite, self.price))
+                    if suite == 'Deluxe Suite':
+                        cur.execute("DELETE FROM rooms_del WHERE r_no = {};".format(room))
+                    elif suite == 'Standard Suite':
+                        cur.execute("DELETE FROM rooms_nondel WHERE r_no = {};".format(room))
+                    cur.execute("SELECT * FROM Hotel;")
+                    print(cur.fetchall())
+                except:
+                    con.rollback()
+                con.commit()
+                con.close()
+                
+            reset('holder')
+
+        def sel_s(h):
+            suite =  self.SuiteSelect.get()
+            days = self.days_entry.get()
+            self.room_entry.delete(0, END)
+            self.room_entry.insert(0, '')
+            if suite == 'Deluxe Suite':
+                room_number_del()
+                self.price = int(days)*5000
+            elif suite == 'Standard Suite':
+                room_number_nondel()
+                self.price = int(days)*2500
+            self.temprice=self.price
+                
+
+        def price_pri():
+            self.price_entry.delete(0, END)
+            self.price_entry.insert(0, self.price)
+
+
+        def sel_bed(h):
+            bed = self.bedsel.get()
+            if bed=="YES":
+                self.price=self.temprice+400
+                price_pri()
+            elif bed=="NO":
+                self.price=self.temprice
+                price_pri()
+
+
+        suite = self.SuiteSelect.get()
+        days = self.days_entry.get()
+        self.room_entry = Entry(self, width=50, font = ("Times New Roman", 15))
+        self.SuiteSelect.bind("<<ComboboxSelected>>", sel_s)
+        self.room_entry.place(x=700, y=490)
+
+        my_canvas.create_text(290, 610, text = "Estimated Price:", font = ("High Tower Text", 40), fill = "#006b56", anchor = "nw")
+        self.price_entry = Entry(self, width=50, font = ("Times New Roman", 15))
+        self.price_entry.place(x=700, y=630)
+        self.bedsel.bind("<<ComboboxSelected>>", sel_bed)
+
+        submit = ImageTk.PhotoImage(file="submit.png")
+        self.submit_l = Label(self, image=submit)
+        self.submit_l.image = submit;
+        submit_Button = my_canvas.create_image(220, 695, image=submit, anchor = 'nw')
+        my_canvas.tag_bind(submit_Button, "<Button-1>", submit_info)
+
+        home = ImageTk.PhotoImage(file="home.png")
+        self.home_l = Label(self, image=home)
+        self.home_l.image = home;
+        home_Button = my_canvas.create_image(620, 695, image=home, anchor = 'nw')
+        my_canvas.tag_bind(home_Button, "<Button-1>", close_win)
+
+        reset1 = ImageTk.PhotoImage(file="reset1.png")
+        self.reset_l = Label(self, image=reset1)
+        self.reset_l.image = reset1;
+        reset_Button = my_canvas.create_image(1020, 695, image=reset1, anchor = 'nw')
+        my_canvas.tag_bind(reset_Button, "<Button-1>", reset)
+
 
 
 
